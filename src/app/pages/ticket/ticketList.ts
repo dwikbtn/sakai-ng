@@ -1,46 +1,31 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { Popover } from 'primeng/popover';
 import { InputTextModule } from 'primeng/inputtext';
-
+import { TicketStatusTab } from './components/ticketStatusTab';
 interface Ticket {
     id: string;
     title: string;
     date: string;
     category: string;
     user: string;
-    // priority corresponds to High/Medium/Low
     priority: 'High' | 'Medium' | 'Low';
-    // status: open / in-progress / closed
     status: 'open' | 'in-progress' | 'closed';
 }
 
 @Component({
     selector: 'app-ticket-list',
     standalone: true,
-    imports: [CommonModule, RouterModule, TableModule, ButtonModule, Popover, InputTextModule],
+    imports: [CommonModule, RouterModule, TableModule, ButtonModule, Popover, InputTextModule, TicketStatusTab],
     template: `
         <section class="p-4">
             <div class="text-3xl font-bold mb-4">Ticket List</div>
 
             <div class="toolbar flex items-center justify-between mb-4">
-                <div class="tabs flex items-center gap-2" role="tablist" aria-label="Ticket status tabs">
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="selectedTab === 'all'" [class.active]="selectedTab === 'all'" (click)="selectTab('all')">
-                        All <span class="count">({{ totalCount }})</span>
-                    </button>
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="selectedTab === 'open'" [class.active]="selectedTab === 'open'" (click)="selectTab('open')">
-                        Open <span class="count">({{ openedCount }})</span>
-                    </button>
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="selectedTab === 'in-progress'" [class.active]="selectedTab === 'in-progress'" (click)="selectTab('in-progress')">
-                        In Progress <span class="count">({{ inProgressCount }})</span>
-                    </button>
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="selectedTab === 'closed'" [class.active]="selectedTab === 'closed'" (click)="selectTab('closed')">
-                        Closed <span class="count">({{ closedCount }})</span>
-                    </button>
-                </div>
+                <ticket-status-tab [selectedTab]="selectedTab" [totalCount]="totalCount" [openedCount]="openedCount" [inProgressCount]="inProgressCount" [closedCount]="closedCount" (tabSelected)="selectTab($event)"></ticket-status-tab>
 
                 <div class="controls flex items-center gap-3" style="position:relative">
                     <div class="search-wrapper">
