@@ -33,6 +33,12 @@ import { PrimeTemplate } from 'primeng/api';
                     <textarea pTextarea id="description" [(ngModel)]="ticketData.description" placeholder="Describe your issue..." rows="5" class="w-full resize-none"></textarea>
                 </div>
 
+                <!-- Add assign to -->
+                <!-- <div class="flex flex-col gap-2">
+                    <label for="assignee" class="text-sm font-medium text-surface-900 dark:text-surface-0"> Assign To </label>
+                    <p-select id="assignee" [(ngModel)]="ticketData.assignee" [options]="" optionLabel="label" optionValue="value" placeholder="Select a user" class="w-full" />
+                </div> -->
+
                 <!-- Upload Image -->
                 <div class="flex flex-col gap-2">
                     <label class="text-sm font-medium text-surface-900 dark:text-surface-0"> Upload Image </label>
@@ -55,11 +61,19 @@ export class NewTicket {
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() create = new EventEmitter<any>();
 
+    assignees = [
+        { label: 'Unassigned', value: '' },
+        { label: 'Alice Johnson', value: 'alice' },
+        { label: 'Bob Smith', value: 'bob' },
+        { label: 'Charlie Brown', value: 'charlie' }
+    ];
+
     ticketData = {
         title: '',
         category: '',
         description: '',
-        image: null as File | null
+        image: null as File | null,
+        assignee: ''
     };
 
     categories = [
@@ -101,7 +115,8 @@ export class NewTicket {
             title: '',
             category: '',
             description: '',
-            image: null
+            image: null,
+            assignee: ''
         };
         this.visible = false;
         this.visibleChange.emit(this.visible);
