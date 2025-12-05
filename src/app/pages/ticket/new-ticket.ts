@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { Dialog } from 'primeng/dialog';
 import { InputText } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
@@ -8,6 +8,9 @@ import { FileUpload } from 'primeng/fileupload';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PrimeTemplate } from 'primeng/api';
+import { Store } from '@ngxs/store';
+import { AddTicket } from '@/state/store/ticket/ticket.action';
+import { Ticket } from '@/state/store/ticket/ticket.state';
 
 @Component({
     selector: 'app-new-ticket',
@@ -22,10 +25,10 @@ import { PrimeTemplate } from 'primeng/api';
                 </div>
 
                 <!-- Category -->
-                <div class="flex flex-col gap-2">
+                <!-- <div class="flex flex-col gap-2">
                     <label for="category" class="text-sm font-medium text-surface-900 dark:text-surface-0"> Category <span class="text-red-500">*</span> </label>
                     <p-select id="category" [(ngModel)]="ticketData.category" [options]="categories" optionLabel="label" optionValue="value" placeholder="Select a category" class="w-full" />
-                </div>
+                </div> -->
 
                 <!-- Description -->
                 <div class="flex flex-col gap-2">
@@ -54,9 +57,11 @@ import { PrimeTemplate } from 'primeng/api';
             </ng-template>
         </p-dialog>
     `,
-    imports: [Dialog, InputText, Textarea, Select, Button, FileUpload, CommonModule, FormsModule, PrimeTemplate]
+    imports: [Dialog, InputText, Textarea, Button, FileUpload, CommonModule, FormsModule, PrimeTemplate]
 })
 export class NewTicket {
+    store = Inject(Store);
+
     @Input() visible: boolean = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() create = new EventEmitter<any>();
@@ -68,12 +73,17 @@ export class NewTicket {
         { label: 'Charlie Brown', value: 'charlie' }
     ];
 
-    ticketData = {
+    ticketData: Ticket = {
         title: '',
-        category: '',
+        // category: '',
         description: '',
-        image: null as File | null,
-        assignee: ''
+        imageListUrls: [],
+        assignee: '',
+        createdDate: new Date(),
+        id: '',
+        priority: 'Medium',
+        status: 'open',
+        user: ''
     };
 
     categories = [
@@ -95,17 +105,19 @@ export class NewTicket {
 
     onFileSelect(event: any) {
         if (event.files && event.files.length > 0) {
-            this.ticketData.image = event.files[0];
+            // this.ticketData.image = event.files[0];
+            this.ticketData.imageListUrls = event.files.map((file: any) => URL.createObjectURL(file));
         }
     }
 
     isFormValid(): boolean {
-        return !!(this.ticketData.title.trim() && this.ticketData.category && this.ticketData.description.trim());
+        return !!(this.ticketData.title.trim() && this.ticketData.description.trim());
     }
 
     onSubmit() {
         if (this.isFormValid()) {
             this.create.emit({ ...this.ticketData });
+            this.store.dispatch(new AddTicket(this.ticketData));
             this.resetAndClose();
         }
     }
@@ -113,10 +125,15 @@ export class NewTicket {
     resetAndClose() {
         this.ticketData = {
             title: '',
-            category: '',
+            // category: '',
             description: '',
-            image: null,
-            assignee: ''
+            imageListUrls: [],
+            assignee: '',
+            createdDate: new Date(),
+            id: '',
+            priority: 'Medium',
+            status: 'open',
+            user: ''
         };
         this.visible = false;
         this.visibleChange.emit(this.visible);

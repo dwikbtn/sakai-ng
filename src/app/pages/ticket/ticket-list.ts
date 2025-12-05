@@ -9,20 +9,9 @@ import { Filter } from './components/filter';
 import { TicketStatusTab } from './components/ticket-status-tab';
 import { ActivatedRoute } from '@angular/router';
 import { NewTicket } from './new-ticket';
-import { Select, Store } from '@ngxs/store';
-import { TicketState } from '@/state/store/ticket/ticket.state';
-import { Observable } from 'rxjs';
+import { Store } from '@ngxs/store';
+import { Ticket, TicketState } from '@/state/store/ticket/ticket.state';
 import { LoadTickets } from '@/state/store/ticket/ticket.action';
-
-interface Ticket {
-    id: string;
-    title: string;
-    date: string;
-    category: string;
-    user: string;
-    priority: 'High' | 'Medium' | 'Low';
-    status: 'open' | 'in-progress' | 'closed';
-}
 
 @Component({
     selector: 'app-ticket-list',
@@ -74,7 +63,9 @@ interface Ticket {
                     <tr>
                         <th>Ticket ID</th>
                         <th>Title</th>
-                        <th>Category</th>
+                        <!-- <th>Category</th> -->
+                        <th>Created At</th>
+                        <th>Updated At</th>
                         <th>User Name</th>
                         <th>Priority</th>
                         <th>Status</th>
@@ -89,7 +80,9 @@ interface Ticket {
                             <div class="font-semibold">{{ ticket.title }}</div>
                             <div class="text-xs text-gray-500">{{ ticket.date }}</div>
                         </td>
-                        <td>{{ ticket.category }}</td>
+                        <!-- <td>{{ ticket.category }}</td> -->
+                        <td>{{ ticket.createdDate }}</td>
+                        <td>{{ ticket.updatedDate }}</td>
                         <td>{{ ticket.user }}</td>
                         <td>
                             <span class="priority-badge" [ngClass]="priorityClass(ticket.priority)">{{ ticket.priority }}</span>
@@ -165,7 +158,7 @@ export class TicketList {
     }
 
     get inProgressCount() {
-        return this.tickets().filter((t) => t.status === 'in progress').length;
+        return this.tickets().filter((t) => t.status === 'in-progress').length;
     }
 
     get closedCount() {

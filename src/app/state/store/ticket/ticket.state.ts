@@ -9,7 +9,8 @@ export interface Ticket {
     createdDate: Date;
     description: string;
     user: string;
-    status: 'open' | 'in progress' | 'closed';
+    status: 'open' | 'in-progress' | 'closed';
+    imageListUrls?: string[];
     priority: string;
     assignee: string;
 }
@@ -54,7 +55,7 @@ export class TicketState {
         setTimeout(() => {
             const tickets: Ticket[] = [
                 { id: '1', title: 'Sample Ticket 1', description: 'Description 1', updatedDate: new Date(), createdDate: new Date(), user: 'User A', status: 'open', priority: 'High', assignee: 'User A' },
-                { id: '2', title: 'Sample Ticket 2', description: 'Description 2', updatedDate: new Date(), createdDate: new Date(), user: 'User B', status: 'in progress', priority: 'Medium', assignee: 'User B' }
+                { id: '2', title: 'Sample Ticket 2', description: 'Description 2', updatedDate: new Date(), createdDate: new Date(), user: 'User B', status: 'in-progress', priority: 'Medium', assignee: 'User B' }
             ];
             ctx.patchState({ tickets, loading: false });
         }, 1000);
