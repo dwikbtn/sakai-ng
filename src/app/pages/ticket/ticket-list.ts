@@ -7,19 +7,25 @@ import { Popover } from 'primeng/popover';
 import { InputTextModule } from 'primeng/inputtext';
 import { Filter } from './components/filter';
 import { TicketStatusTab } from './components/ticket-status-tab';
+import { DeleteTicketDialog } from './components/delete-ticket-dialog';
 import { ActivatedRoute } from '@angular/router';
 import { NewTicket } from './new-ticket';
 import { Store } from '@ngxs/store';
 import { Ticket, TicketState } from '@/state/store/ticket/ticket.state';
 import { LoadTickets, RemoveTicket, UpdateTicket } from '@/state/store/ticket/ticket.action';
 import { formatDate, priorityClass, statusClass, statusLabel } from './ticket.utils';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'app-ticket-list',
     standalone: true,
-    imports: [CommonModule, RouterModule, TableModule, ButtonModule, Popover, InputTextModule, TicketStatusTab, Filter, NewTicket],
+    imports: [CommonModule, RouterModule, TableModule, ButtonModule, Popover, InputTextModule, TicketStatusTab, Filter, NewTicket, Toast, DeleteTicketDialog],
+    providers: [MessageService],
     template: `
         <section class="p-4">
+            <p-toast />
             <div class="text-3xl font-bold mb-4">Ticket List</div>
             <button pButton type="button" label="New Ticket" icon="pi pi-plus" (click)="showVisible()"></button>
             <div class="toolbar flex items-center justify-between mb-4 mt-2">
@@ -65,8 +71,8 @@ import { formatDate, priorityClass, statusClass, statusLabel } from './ticket.ut
                         <th>Ticket ID</th>
                         <th>Title</th>
                         <!-- <th>Category</th> -->
-                        <th>Created At</th>
-                        <th>Updated At</th>
+                        <!-- <th>Created At</th>
+                        <th>Updated At</th> -->
                         <th>User Name</th>
                         <th>Priority</th>
                         <th>Status</th>
@@ -82,8 +88,8 @@ import { formatDate, priorityClass, statusClass, statusLabel } from './ticket.ut
                             <div class="text-xs text-gray-500">{{ ticket.date }}</div>
                         </td>
                         <!-- <td>{{ ticket.category }}</td> -->
-                        <td>{{ formatDate(ticket.createdDate) }}</td>
-                        <td>{{ formatDate(ticket.updatedDate) }}</td>
+                        <!-- <td>{{ formatDate(ticket.createdDate) }}</td>
+                        <td>{{ formatDate(ticket.updatedDate) }}</td> -->
                         <td>{{ ticket.user }}</td>
                         <td>
                             <span class="priority-badge" [ngClass]="priorityClass(ticket.priority)">{{ ticket.priority }}</span>
@@ -112,14 +118,20 @@ import { formatDate, priorityClass, statusClass, statusLabel } from './ticket.ut
         </section>
         <!-- create ticket modal here -->
         <app-new-ticket [visible]="visible" (visibleChange)="visible = $event" />
+
+        <!-- delete confirmation modal -->
+        <app-delete-ticket-dialog [(visible)]="showDeleteModal" [ticket]="ticketToDelete" (confirm)="confirmDelete()"> </app-delete-ticket-dialog>
     `,
     styleUrls: ['./ticket-styles.css']
 })
 export class TicketList {
-    constructor(private activatedRoute: ActivatedRoute) {}
+    constructor(
+        private activatedRoute: ActivatedRoute,
+        private messageService: MessageService
+    ) {}
 
     private store = inject(Store);
-
+    private router = inject(Router);
     //ticket state using signals
     tickets = this.store.selectSignal(TicketState.tickets);
 
@@ -194,7 +206,8 @@ export class TicketList {
     formatDate = formatDate;
 
     viewTicket(ticket: Ticket) {
-        console.log('View', ticket);
+        // Navigate to ticket detail page
+        this.router.navigate(['/ticket/view', ticket.id]);
     }
 
     closeTicket(ticket: Ticket) {
@@ -202,7 +215,23 @@ export class TicketList {
     }
 
     deleteTicket(ticket: Ticket) {
-        this.store.dispatch(new RemoveTicket(ticket.id));
+        this.ticketToDelete = ticket;
+        this.showDeleteModal = true;
+    }
+
+    showDeleteModal = false;
+    ticketToDelete: Ticket | null = null;
+
+    confirmDelete() {
+        if (this.ticketToDelete) {
+            this.store.dispatch(new RemoveTicket(this.ticketToDelete.id));
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Ticket deleted successfully'
+            });
+            this.ticketToDelete = null;
+        }
     }
 
     onSearch(event: Event) {
@@ -250,9 +279,11 @@ export class TicketList {
     ngOnInit(): void {
         document.addEventListener('click', this._docClick);
         const path = this.activatedRoute.snapshot.routeConfig?.path;
+        console.log('Activated Route Path:', path);
         if (path) {
-            if (path === 'ticket/new') {
+            if (path === 'new') {
                 //TODO: Open ticket page modal
+
                 this.showVisible();
             }
         }

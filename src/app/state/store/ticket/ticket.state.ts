@@ -1,5 +1,5 @@
 import { State, Action, StateContext, Selector } from '@ngxs/store';
-import { AddTicket, RemoveTicket, ViewTicket, UpdateTicket, LoadTickets } from './ticket.action';
+import { AddTicket, RemoveTicket, ViewSingleTicket, UpdateTicket, LoadTickets } from './ticket.action';
 import { Injectable } from '@angular/core';
 
 export interface Ticket {
@@ -17,6 +17,7 @@ export interface Ticket {
 
 interface TicketStateModel {
     tickets: Ticket[];
+    viewedTicket?: Ticket;
     loading: boolean;
 }
 
@@ -27,6 +28,18 @@ interface TicketStateModel {
             { id: '1', title: 'Sample Ticket 1', description: 'Description 1', updatedDate: new Date(), createdDate: new Date(), user: 'User A', status: 'open', priority: 'High', assignee: 'User A' },
             { id: '2', title: 'Sample Ticket 2', description: 'Description 2', updatedDate: new Date(), createdDate: new Date(), user: 'User B', status: 'in progress', priority: 'Medium', assignee: 'User B' }
         ] as Ticket[],
+        viewedTicket: {
+            id: '',
+            title: '',
+            description: '',
+            updatedDate: new Date(),
+            createdDate: new Date(),
+            user: '',
+            status: 'open',
+            priority: '',
+            assignee: '',
+            imageListUrls: []
+        } as Ticket,
         loading: false
     }
 })
@@ -40,6 +53,11 @@ export class TicketState {
     @Selector()
     static tickets(state: TicketStateModel) {
         return state.tickets;
+    }
+
+    @Selector()
+    static viewedSingleTicket(state: TicketStateModel) {
+        return state.viewedTicket;
     }
 
     @Action(LoadTickets)
@@ -88,10 +106,11 @@ export class TicketState {
         ctx.patchState({ tickets });
     }
 
-    @Action(ViewTicket)
-    viewTicket(ctx: StateContext<TicketStateModel>, action: ViewTicket) {
+    @Action(ViewSingleTicket)
+    viewTicket(ctx: StateContext<TicketStateModel>, action: ViewSingleTicket) {
         const state = ctx.getState();
         const ticket = state.tickets.find((ticket) => ticket.id === action.id);
+        ctx.patchState({ viewedTicket: ticket });
         // You can handle the viewed ticket as needed, e.g., set it in the state or perform other actions
     }
 }

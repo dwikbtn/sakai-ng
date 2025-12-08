@@ -22,11 +22,11 @@ export class UpdateTicket {
     ) {}
 }
 
-export class ViewTicket {
+export class ViewSingleTicket {
     static readonly type = '[Ticket] View Ticket';
     constructor(public id: string) {}
 }
 
-type TicketActions = LoadTickets | RemoveTicket | AddTicket | UpdateTicket | ViewTicket;
+type TicketActions = LoadTickets | RemoveTicket | AddTicket | UpdateTicket | ViewSingleTicket;
 
 export type { TicketActions };
