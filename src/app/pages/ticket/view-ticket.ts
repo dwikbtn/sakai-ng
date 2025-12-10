@@ -83,17 +83,17 @@ export class ViewTicket {
     }
     get priorityColor() {
         const priority = this.ticketData()?.priority;
-        if (!priority) return 'info';
+        if (!priority) return 'secondary';
 
         switch (priority) {
-            case 'Low':
-                return 'success';
-            case 'Medium':
-                return 'warn';
             case 'High':
-                return 'danger';
+                return 'success'; // green
+            case 'Medium':
+                return 'info'; // blue
+            case 'Low':
+                return 'secondary'; // gray
             default:
-                return 'info';
+                return 'secondary';
         }
     }
 
@@ -103,11 +103,11 @@ export class ViewTicket {
 
         switch (status) {
             case 'open':
-                return 'info';
+                return 'success'; // emerald/green
             case 'in-progress':
-                return 'warn';
+                return 'warn'; // amber
             case 'closed':
-                return 'success';
+                return 'secondary'; // gray
             default:
                 return 'secondary';
         }

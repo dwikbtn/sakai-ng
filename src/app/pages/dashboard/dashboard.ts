@@ -3,6 +3,8 @@ import { Fluid } from 'primeng/fluid';
 import { ChartModule } from 'primeng/chart';
 import { TotalTicketCard } from './components/totalTicketCard';
 import { Router } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { TicketState } from '@/state/store/ticket/ticket.state';
 @Component({
     selector: 'app-dashboard',
     imports: [Fluid, ChartModule, TotalTicketCard],
@@ -35,12 +37,19 @@ import { Router } from '@angular/router';
             <!-- total tickets card -->
             <div class="grid grid-cols-12 gap-8">
                 <!-- total on progress tickets card -->
-                <app-total-ticket-card dataValue="8" dataLabel="Open Tickets" icon="pi pi-exclamation-circle" iconColor="#EF6C00" ticketStatus="open" (redirectToTicket)="onRedirectToTicketPage($event)"></app-total-ticket-card>
-                <app-total-ticket-card dataValue="5" dataLabel="On Progress Tickets" icon="pi pi-spinner" iconColor="#3B82F6" ticketStatus="in-progress" (redirectToTicket)="onRedirectToTicketPage($event)"></app-total-ticket-card>
-                <app-total-ticket-card dataValue="12" dataLabel="Closed Tickets" icon="pi pi-check-circle" iconColor="#10B981" ticketStatus="closed" (redirectToTicket)="onRedirectToTicketPage($event)"></app-total-ticket-card>
+                <app-total-ticket-card [dataValue]="openTickets.toString()" dataLabel="Open Tickets" icon="pi pi-exclamation-circle" iconColor="#EF6C00" ticketStatus="open" (redirectToTicket)="onRedirectToTicketPage($event)"></app-total-ticket-card>
+                <app-total-ticket-card
+                    [dataValue]="inProgressTickets.toString()"
+                    dataLabel="On Progress Tickets"
+                    icon="pi pi-spinner"
+                    iconColor="#3B82F6"
+                    ticketStatus="in-progress"
+                    (redirectToTicket)="onRedirectToTicketPage($event)"
+                ></app-total-ticket-card>
+                <app-total-ticket-card [dataValue]="closedTickets.toString()" dataLabel="Closed Tickets" icon="pi pi-check-circle" iconColor="#10B981" ticketStatus="closed" (redirectToTicket)="onRedirectToTicketPage($event)"></app-total-ticket-card>
             </div>
 
-            <div class=" w-full flex justify-end hover:cursor-pointer mt-4 text-primary-600 font-semibold">
+            <div (click)="onRedirectToTicketPage('all')" class=" w-full flex justify-end hover:cursor-pointer mt-4 text-primary-600 font-semibold">
                 <p>Go to Ticket Page →</p>
             </div>
         </section>
@@ -48,13 +57,30 @@ import { Router } from '@angular/router';
 })
 export class Dashboard {
     private router = inject(Router);
+    private store = inject(Store);
+    ticketData = this.store.selectSignal(TicketState.tickets);
+
+    get totalTickets() {
+        return this.ticketData().length;
+    }
+
+    get openTickets() {
+        return this.ticketData().filter((t) => t.status === 'open').length;
+    }
+    get inProgressTickets() {
+        return this.ticketData().filter((t) => t.status === 'in-progress').length;
+    }
+    get closedTickets() {
+        return this.ticketData().filter((t) => t.status === 'closed').length;
+    }
+
     monthlyData = {};
     monthlyOptions = {};
 
     ticketStatusData = {};
     ticketStatusOptions = {};
 
-    onRedirectToTicketPage(redirectTo: 'open' | 'in-progress' | 'closed') {
+    onRedirectToTicketPage(redirectTo: 'open' | 'in-progress' | 'closed' | 'all') {
         console.log(redirectTo, 'redirectTo');
         this.router.navigate([`/ticket`], { queryParams: { status: redirectTo } });
     }
