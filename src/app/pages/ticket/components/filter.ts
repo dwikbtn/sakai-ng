@@ -28,7 +28,41 @@ import { ButtonModule } from 'primeng/button';
             <button pButton type="button" label="Apply" class="p-button-sm" (click)="applyFilter()"></button>
             <button pButton type="button" label="Clear" class="p-button-sm p-button-text" (click)="clearFilter()"></button>
         </div>
-    </div>`
+    </div>`,
+    styles: [`
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 1rem;
+        }
+
+        .filter-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-color);
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .filter-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--surface-border);
+        }
+    `]
 })
 export class Filter {
     @Input() showFilter: boolean = false;
