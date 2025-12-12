@@ -11,8 +11,10 @@ export interface Ticket {
     user: string;
     status: 'open' | 'in-progress' | 'closed';
     imageListUrls?: string[];
-    priority: string;
-    assignee: string;
+    attatchmentList?: string[];
+    priority?: string;
+    assignee?: string;
+    effort?: string;
 }
 
 interface TicketStateModel {

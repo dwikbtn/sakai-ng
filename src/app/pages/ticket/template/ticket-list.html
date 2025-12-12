@@ -1,7 +1,7 @@
 <section class="p-4">
     <p-toast />
     <div class="text-3xl font-bold mb-4">Ticket List</div>
-    <button pButton type="button" label="New Ticket" icon="pi pi-plus" (click)="showVisible()" pTooltip="Create a new ticket" tooltipPosition="bottom"></button>
+    <button pButton type="button" label="New Ticket" icon="pi pi-plus" (click)="createNewTicket()" pTooltip="Create a new ticket" tooltipPosition="bottom"></button>
     <div class="toolbar flex items-center justify-between mb-4 mt-2">
         <ticket-status-tab [selectedTab]="selectedTab" [totalCount]="totalCount" [openedCount]="openedCount" [inProgressCount]="inProgressCount" [closedCount]="closedCount" (tabSelected)="selectTab($event)"></ticket-status-tab>
 
@@ -110,8 +110,6 @@
         </ng-template>
     </p-table>
 </section>
-<!-- create ticket modal here -->
-<app-new-ticket [visible]="visible" (visibleChange)="visible = $event" />
 
 <!-- delete confirmation modal -->
 <app-delete-ticket-dialog [(visible)]="showDeleteModal" [ticket]="ticketToDelete" (confirm)="confirmDelete()"> </app-delete-ticket-dialog>

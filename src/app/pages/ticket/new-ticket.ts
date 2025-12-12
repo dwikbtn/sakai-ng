@@ -5,70 +5,227 @@ import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { Button } from 'primeng/button';
 import { FileUpload } from 'primeng/fileupload';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PrimeTemplate } from 'primeng/api';
 import { Store } from '@ngxs/store';
 import { AddTicket } from '@/state/store/ticket/ticket.action';
 import { Ticket } from '@/state/store/ticket/ticket.state';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'app-new-ticket',
     standalone: true,
     template: `
-        <p-dialog header="New Ticket" [(visible)]="visible" [modal]="true" (onHide)="onHide()" [style]="{ width: '600px' }" [draggable]="false" [resizable]="false">
-            <div class="flex flex-col gap-4 py-2">
-                <!-- Ticket Title -->
-                <div class="flex flex-col gap-2">
-                    <label for="title" class="text-sm font-medium text-surface-900 dark:text-surface-0"> Ticket Title <span class="text-red-500">*</span> </label>
-                    <input pInputText id="title" [(ngModel)]="ticketData.title" placeholder="Enter ticket title" class="w-full" />
-                </div>
+        <p-toast />
+        <section class="mb-4 card">
+            <div class="text-3xl font-bold mb-4">New Ticket</div>
 
-                <!-- Category -->
-                <!-- <div class="flex flex-col gap-2">
-                    <label for="category" class="text-sm font-medium text-surface-900 dark:text-surface-0"> Category <span class="text-red-500">*</span> </label>
-                    <p-select id="category" [(ngModel)]="ticketData.category" [options]="categories" optionLabel="label" optionValue="value" placeholder="Select a category" class="w-full" />
-                </div> -->
+            <form (ngSubmit)="onSubmit()">
+                <div class="grid grid-cols-12 gap-4 mb-4">
+                    <div class="col-span-6">
+                        <div class="card">
+                            <!-- User
+                            <div class="mb-4">
+                                <label for="user" class="block text-sm font-medium mb-2">User</label>
+                                <input id="user" type="text" pInputText [value]="activeTicket()?.user || ''" [disabled]="!isITSupport" class="w-full bg-gray-100" />
+                            </div> -->
 
-                <!-- Description -->
-                <div class="flex flex-col gap-2">
-                    <label for="description" class="text-sm font-medium text-surface-900 dark:text-surface-0"> Description <span class="text-red-500">*</span> </label>
-                    <textarea pTextarea id="description" [(ngModel)]="ticketData.description" placeholder="Describe your issue..." rows="5" class="w-full resize-none"></textarea>
-                </div>
+                            <!-- Title -->
+                            <div class="mb-4">
+                                <label for="title" class="block text-sm font-medium mb-2">Title <span class="text-red-500">*</span></label>
+                                <input id="title" type="text" pInputText [(ngModel)]="selectedTitle" name="title" class="w-full" [class.ng-invalid]="(showValidation || titleTouched) && !selectedTitle.trim()" (blur)="titleTouched = true" />
+                                @if ((showValidation || titleTouched) && !selectedTitle.trim()) {
+                                    <small class="text-red-500 mt-1 block">Title is required</small>
+                                }
+                            </div>
 
-                <!-- Add assign to -->
-                @if (isItSupport) {
-                    <div class="flex flex-col gap-2">
-                        <label for="assignee" class="text-sm font-medium text-surface-900 dark:text-surface-0"> Assign To </label>
-                        <p-select id="assignee" [(ngModel)]="ticketData.assignee" [options]="" optionLabel="label" optionValue="value" placeholder="Select a user" class="w-full" />
+                            <!-- Description -->
+                            <div class="mb-4">
+                                <label for="description" class="block text-sm font-medium mb-2">Description <span class="text-red-500">*</span></label>
+                                <textarea
+                                    id="description"
+                                    pTextarea
+                                    [(ngModel)]="selectedDescription"
+                                    name="description"
+                                    rows="5"
+                                    class="w-full"
+                                    [class.ng-invalid]="(showValidation || descriptionTouched) && !selectedDescription.trim()"
+                                    (blur)="descriptionTouched = true"
+                                ></textarea>
+                                @if ((showValidation || descriptionTouched) && !selectedDescription.trim()) {
+                                    <small class="text-red-500 mt-1 block">Description is required</small>
+                                }
+                            </div>
+
+                            <!-- Upload Attachments -->
+                            <div class="flex flex-col gap-3">
+                                <label class="text-sm font-medium text-surface-900 dark:text-surface-0"> Attachments </label>
+                                <div class="flex gap-2">
+                                    <p-fileupload mode="basic" name="image" accept="image/*" [maxFileSize]="5000000" [auto]="true" chooseLabel="Upload Image" (onSelect)="onImageSelect($event)" styleClass="flex-1" chooseIcon="pi pi-image">
+                                    </p-fileupload>
+                                    <p-fileupload
+                                        mode="basic"
+                                        name="attachment"
+                                        accept=".pdf,.doc,.docx"
+                                        [maxFileSize]="10000000"
+                                        [auto]="true"
+                                        chooseLabel="Upload Document"
+                                        (onSelect)="onDocumentSelect($event)"
+                                        styleClass="flex-1"
+                                        chooseIcon="pi pi-file"
+                                    >
+                                    </p-fileupload>
+                                </div>
+                                <small class="text-surface-500">Images: JPG, PNG, GIF (max 5MB) • Documents: PDF, DOC, DOCX (max 10MB)</small>
+                            </div>
+                        </div>
                     </div>
-                }
+                    <div class="col-span-6 w-full">
+                        <div class="card flex flex-col min-h-full">
+                            @if (isItSupport) {
+                                <!-- Priority -->
+                                <div class="mb-4">
+                                    <label for="priority" class="block text-sm font-medium mb-2">Priority</label>
+                                    <p-select id="priority" [options]="priorityOptions" [(ngModel)]="selectedPriority" name="priority" placeholder="Select Priority" optionLabel="label" optionValue="value" class="w-full" />
+                                </div>
+                                <!-- effort -->
+                                <div class="mb-4">
+                                    <label for="effort" class="block text-sm font-medium mb-2">Effort</label>
+                                    <p-select id="effort" [options]="effortOptions" [(ngModel)]="selectedEffort" name="effort" placeholder="Select Effort" optionLabel="label" optionValue="value" class="w-full" />
+                                </div>
 
-                <!-- Upload Image -->
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-surface-900 dark:text-surface-0"> Upload Image </label>
-                    <p-fileupload mode="basic" name="image" accept="image/*" [maxFileSize]="5000000" [auto]="true" chooseLabel="Choose File" (onSelect)="onFileSelect($event)" class="w-full"> </p-fileupload>
-                    <small class="text-surface-500">Max file size: 5MB. Supported formats: JPG, PNG, GIF</small>
+                                <!-- Status -->
+                                <div class="mb-4">
+                                    <label for="status" class="block text-sm font-medium mb-2">Status</label>
+                                    <p-select id="status" [options]="statusOptions" [(ngModel)]="selectedStatus" name="status" placeholder="Select Status" optionLabel="label" optionValue="value" class="w-full" />
+                                </div>
+
+                                <!-- Assign To -->
+                                <div class="mb-4">
+                                    <label for="assignee" class="block text-sm font-medium mb-2">Assign To</label>
+                                    <p-select id="assignee" [options]="assigneeOptions" [(ngModel)]="selectedAssignee" name="assignee" placeholder="Select Assignee" optionLabel="label" optionValue="value" class="w-full" />
+                                </div>
+                            }
+                            <!-- Action Buttons -->
+                            <div class="flex gap-2 mt-auto ">
+                                <p-button label="Add Ticket" icon="pi pi-check" severity="success" type="submit" [disabled]="!isFormValid()" />
+                                <p-button label="Cancel" icon="pi pi-times" severity="secondary" type="button" (onClick)="onCancel()" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Display uploaded files -->
+                    @if (uploadedImage || uploadedDocument) {
+                        <div class="col-span-12">
+                            <div class="card">
+                                <div class="text-lg font-semibold mb-4">Uploaded Files</div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <!-- Display uploaded image -->
+                                    @if (uploadedImage) {
+                                        <div class="flex flex-col gap-3 p-4 border border-surface-300 dark:border-surface-600 rounded-lg bg-surface-50 dark:bg-surface-800">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="pi pi-image text-xl text-blue-500"></i>
+                                                    <span class="font-medium text-surface-900 dark:text-surface-0">Image</span>
+                                                </div>
+                                                <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeImage()"></p-button>
+                                            </div>
+                                            <img [src]="imagePreviewUrl" alt="Preview" class="w-full h-48 object-cover rounded-md" />
+                                            <div class="text-sm text-surface-600 dark:text-surface-400">
+                                                <div class="font-medium">{{ uploadedImage.name }}</div>
+                                                <div class="text-xs">{{ formatFileSize(uploadedImage.size) }}</div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <!-- Display uploaded document -->
+                                    @if (uploadedDocument) {
+                                        <div class="flex flex-col gap-3 p-4 border border-surface-300 dark:border-surface-600 rounded-lg bg-surface-50 dark:bg-surface-800">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="pi pi-file text-xl text-green-500"></i>
+                                                    <span class="font-medium text-surface-900 dark:text-surface-0">Document</span>
+                                                </div>
+                                                <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeDocument()"></p-button>
+                                            </div>
+                                            <div class="flex items-center justify-center h-48 bg-surface-100 dark:bg-surface-700 rounded-md">
+                                                <i class="pi pi-file-pdf text-6xl text-surface-400"></i>
+                                            </div>
+                                            <div class="text-sm text-surface-600 dark:text-surface-400">
+                                                <div class="font-medium break-all">{{ uploadedDocument.name }}</div>
+                                                <div class="text-xs">{{ formatFileSize(uploadedDocument.size) }}</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
-            </div>
-            <ng-template pTemplate="footer">
-                <div class="flex gap-2 justify-end">
-                    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="resetAndClose()" />
-                    <p-button label="Create Ticket" (onClick)="onSubmit()" [disabled]="!isFormValid()" />
-                </div>
-            </ng-template>
-        </p-dialog>
+            </form>
+        </section>
     `,
-    imports: [Dialog, InputText, Textarea, Button, FileUpload, CommonModule, FormsModule, PrimeTemplate, Select]
+    imports: [InputText, Textarea, Button, FileUpload, CommonModule, FormsModule, Select, Toast],
+    providers: [MessageService]
 })
 export class NewTicket {
-    constructor(private store: Store) {}
+    constructor(
+        private store: Store,
+        private router: Router,
+        private messageService: MessageService
+    ) {}
 
-    @Input() visible: boolean = false;
-    @Output() visibleChange = new EventEmitter<boolean>();
-    @Output() create = new EventEmitter<any>();
+    selectedPriority: string = '';
+    selectedStatus: Ticket['status'] = 'open';
+    selectedAssignee: string = '';
+    selectedUser: string = '';
+    selectedTitle: string = '';
+    selectedDescription: string = '';
+    selectedEffort: string = '';
+    showValidation: boolean = false;
+    titleTouched: boolean = false;
+    descriptionTouched: boolean = false;
 
-    isItSupport = true;
+    uploadedImage: File | null = null;
+    uploadedDocument: File | null = null;
+    imagePreviewUrl: string | null = null;
+
+    priorityOptions = [
+        { label: 'Low', value: 'Low' },
+        { label: 'Medium', value: 'Medium' },
+        { label: 'High', value: 'High' }
+    ];
+
+    effortOptions = [
+        { label: '1 hour', value: '1' },
+        { label: '2 hours', value: '2' },
+        { label: '4 hours', value: '4' },
+        { label: '1 day', value: '8' },
+        { label: '2 days', value: '16' },
+        { label: '1 week', value: '40' }
+    ];
+
+    statusOptions = [
+        { label: 'Open', value: 'open' },
+        { label: 'In Progress', value: 'in-progress' },
+        { label: 'Closed', value: 'closed' }
+    ];
+
+    assigneeOptions = [
+        { label: 'User A', value: 'User A' },
+        { label: 'User B', value: 'User B' },
+        { label: 'User C', value: 'User C' },
+        { label: 'Admin', value: 'Admin' }
+    ];
+
+    onCancel() {
+        // Navigate back without
+        this.router.navigate(['ticket/']);
+    }
+
+    isItSupport = false;
 
     assignees = [
         { label: 'Unassigned', value: '' },
@@ -76,22 +233,6 @@ export class NewTicket {
         { label: 'Bob Smith', value: 'bob' },
         { label: 'Charlie Brown', value: 'charlie' }
     ];
-
-    ticketData: Ticket = {
-        title: '',
-        // category: '',
-        description: '',
-        imageListUrls: [],
-        assignee: '',
-        createdDate: new Date(),
-        updatedDate: new Date(),
-        id: '',
-
-        //TODO: Fill it later when implementing user auth
-        priority: 'Medium',
-        status: 'open',
-        user: ''
-    };
 
     categories = [
         { label: 'Technical Issue', value: 'technical' },
@@ -101,50 +242,74 @@ export class NewTicket {
         { label: 'Other', value: 'other' }
     ];
 
-    showModal() {
-        this.visible = true;
-        this.visibleChange.emit(this.visible);
-    }
-
-    onHide() {
-        this.resetAndClose();
-    }
-
-    onFileSelect(event: any) {
+    onImageSelect(event: any) {
         if (event.files && event.files.length > 0) {
-            // this.ticketData.image = event.files[0];
-            this.ticketData.imageListUrls = event.files.map((file: any) => URL.createObjectURL(file));
+            this.uploadedImage = event.files[0];
+            this.imagePreviewUrl = URL.createObjectURL(event.files[0]);
         }
+    }
+
+    onDocumentSelect(event: any) {
+        if (event.files && event.files.length > 0) {
+            this.uploadedDocument = event.files[0];
+        }
+    }
+
+    removeImage() {
+        if (this.imagePreviewUrl) {
+            URL.revokeObjectURL(this.imagePreviewUrl);
+        }
+        this.uploadedImage = null;
+        this.imagePreviewUrl = null;
+    }
+
+    removeDocument() {
+        this.uploadedDocument = null;
+    }
+
+    formatFileSize(bytes: number): string {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     }
 
     isFormValid(): boolean {
-        return !!(this.ticketData.title.trim() && this.ticketData.description.trim());
+        if (this.selectedTitle.trim() === '' || this.selectedDescription.trim() === '') {
+            return false;
+        }
+        return true;
     }
 
     onSubmit() {
+        this.showValidation = true;
         if (this.isFormValid()) {
-            console.log('Creating ticket:', this.ticketData);
-            this.create.emit({ ...this.ticketData, id: Date.now().toString() });
+            const ticketData: Ticket = {
+                user: this.selectedUser,
+                title: this.selectedTitle,
+                description: this.selectedDescription,
+                priority: this.selectedPriority,
+                status: this.selectedStatus,
+                assignee: this.selectedAssignee,
+                effort: this.selectedEffort,
+                id: Date.now().toString(),
+                createdDate: new Date()
+            };
             //temporary add id here, should be handled by backend
-            this.store.dispatch(new AddTicket({ ...this.ticketData, id: Date.now().toString() }));
-            this.resetAndClose();
-        }
-    }
+            this.store.dispatch(new AddTicket(ticketData));
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'Ticket added successfully',
+                life: 3000
+            });
+            this.showValidation = false;
 
-    resetAndClose() {
-        this.ticketData = {
-            title: '',
-            // category: '',
-            description: '',
-            imageListUrls: [],
-            assignee: '',
-            createdDate: new Date(),
-            id: '',
-            priority: 'Medium',
-            status: 'open',
-            user: ''
-        };
-        this.visible = false;
-        this.visibleChange.emit(this.visible);
+            // Redirect to ticket list after showing toast
+            setTimeout(() => {
+                this.router.navigate(['ticket/']);
+            }, 1000);
+        }
     }
 }

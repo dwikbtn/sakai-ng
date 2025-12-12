@@ -135,16 +135,16 @@ export class EditTicket {
             this.selectedUser = ticket.user;
             this.selectedTitle = ticket.title;
             this.selectedDescription = ticket.description;
-            this.selectedPriority = ticket.priority;
+            this.selectedPriority = ticket.priority!;
             this.selectedStatus = ticket.status;
-            this.selectedAssignee = ticket.assignee;
+            this.selectedAssignee = ticket.assignee!;
 
             // Store original values for comparison
             this.originalTitle = ticket.title;
             this.originalDescription = ticket.description;
-            this.originalPriority = ticket.priority;
+            this.originalPriority = ticket.priority!;
             this.originalStatus = ticket.status;
-            this.originalAssignee = ticket.assignee;
+            this.originalAssignee = ticket.assignee!;
         }
     }
 

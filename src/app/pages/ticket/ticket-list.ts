@@ -11,7 +11,6 @@ import { Filter } from './components/filter';
 import { TicketStatusTab } from './components/ticket-status-tab';
 import { DeleteTicketDialog } from './components/delete-ticket-dialog';
 import { ActivatedRoute } from '@angular/router';
-import { NewTicket } from './new-ticket';
 import { Store } from '@ngxs/store';
 import { Ticket, TicketState } from '@/state/store/ticket/ticket.state';
 import { LoadTickets, RemoveTicket, UpdateTicket } from '@/state/store/ticket/ticket.action';
@@ -24,7 +23,7 @@ import { TooltipModule } from 'primeng/tooltip';
 @Component({
     selector: 'app-ticket-list',
     standalone: true,
-    imports: [CommonModule, RouterModule, TableModule, ButtonModule, Popover, InputTextModule, AutoCompleteModule, FormsModule, TicketStatusTab, Filter, NewTicket, Toast, DeleteTicketDialog, TooltipModule],
+    imports: [CommonModule, RouterModule, TableModule, ButtonModule, Popover, InputTextModule, AutoCompleteModule, FormsModule, TicketStatusTab, Filter, Toast, DeleteTicketDialog, TooltipModule],
     providers: [MessageService],
     templateUrl: './template/ticket-list.html',
 
@@ -241,12 +240,12 @@ export class TicketList {
                 return true;
             })
             .filter((t) => {
-                if (this.selectedPriorities.size > 0 && !this.selectedPriorities.has(t.priority)) return false;
+                if (this.selectedPriorities.size > 0 && !this.selectedPriorities.has(t.priority!)) return false;
                 return true;
             })
             .filter((t) => {
                 if (!q) return true;
-                return t.id.toLowerCase().includes(q) || t.title.toLowerCase().includes(q) || t.user.toLowerCase().includes(q) || t.priority.toLowerCase().includes(q) || t.status.toLowerCase().includes(q);
+                return t.id.toLowerCase().includes(q) || t.title.toLowerCase().includes(q) || t.user.toLowerCase().includes(q) || t.priority!.toLowerCase().includes(q) || t.status.toLowerCase().includes(q);
             });
 
         // Apply sorting by name when requested
@@ -259,23 +258,12 @@ export class TicketList {
         return result;
     }
 
-    visible: boolean = false;
-
-    showVisible() {
-        this.visible = true;
+    createNewTicket() {
+        this.router.navigate(['/ticket/new']);
     }
 
     ngOnInit(): void {
         document.addEventListener('click', this._docClick);
-        const path = this.activatedRoute.snapshot.routeConfig?.path;
-        console.log('Activated Route Path:', path);
-        if (path) {
-            if (path === 'new') {
-                //TODO: Open ticket page modal
-
-                this.showVisible();
-            }
-        }
         this.store.dispatch(new LoadTickets());
 
         // Load recent searches from localStorage
