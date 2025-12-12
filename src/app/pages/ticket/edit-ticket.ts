@@ -11,11 +11,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { FileUpload } from 'primeng/fileupload';
+import { formatFileSize, handleImageSelect, handleMultipleImageSelect, ImageUpload, removeImageFromArray } from './ticket.utils';
 
 @Component({
     selector: 'app-edit-ticket',
     standalone: true,
-    imports: [CommonModule, FormsModule, InputText, Textarea, Select, Button, Toast],
+    imports: [CommonModule, FormsModule, InputText, Textarea, Select, Button, Toast, FileUpload],
     providers: [MessageService],
     template: `<p-toast />
         <section class="mb-4 card">
@@ -41,10 +43,37 @@ import { MessageService } from 'primeng/api';
                                 <label for="description" class="block text-sm font-medium mb-2">Description</label>
                                 <textarea id="description" pTextarea [(ngModel)]="selectedDescription" name="description" rows="5" class="w-full"></textarea>
                             </div>
+
+                            <!-- Upload Attachments -->
+                            <div class="flex flex-col gap-3">
+                                <label class="text-sm font-medium text-surface-900 dark:text-surface-0"> Attachments </label>
+                                <div class="flex gap-2">
+                                    <p-fileupload mode="basic" name="image" accept="image/*" [maxFileSize]="5000000" [auto]="true" chooseLabel="Upload Attatchment" (onSelect)="onImageSelect($event)" styleClass="flex-1" chooseIcon="pi pi-image">
+                                    </p-fileupload>
+                                    <!-- <p-fileupload
+                                        mode="basic"
+                                        name="attachment"
+                                        accept=".pdf,.doc,.docx"
+                                        [maxFileSize]="10000000"
+                                        [auto]="true"
+                                        chooseLabel="Upload Document"
+                                        (onSelect)="onDocumentSelect($event)"
+                                        styleClass="flex-1"
+                                        chooseIcon="pi pi-file"
+                                    >
+                                    </p-fileupload> -->
+                                </div>
+                                <!-- <small class="text-surface-500">Images: JPG, PNG, GIF (max 5MB) • Documents: PDF, DOC, DOCX (max 10MB)</small> -->
+                            </div>
                         </div>
                     </div>
                     <div class="col-span-6">
                         <div class="card">
+                            <!-- effort -->
+                            <div class="mb-4">
+                                <label for="effort" class="block text-sm font-medium mb-2">Effort</label>
+                                <p-select id="effort" [options]="effortOptions" [(ngModel)]="selectedEffort" name="effort" placeholder="Select Effort" optionLabel="label" optionValue="value" class="w-full" [disabled]="!isITSupport" />
+                            </div>
                             <!-- Priority -->
                             <div class="mb-4">
                                 <label for="priority" class="block text-sm font-medium mb-2">Priority</label>
@@ -71,6 +100,33 @@ import { MessageService } from 'primeng/api';
                         </div>
                     </div>
                 </div>
+                <!-- Display uploaded files -->
+                @if (uploadedImages.length > 0) {
+                    <div class="col-span-12">
+                        <div class="card">
+                            <div class="text-lg font-semibold mb-4">Uploaded Files ({{ uploadedImages.length }} {{ uploadedImages.length === 1 ? 'image' : 'images' }})</div>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <!-- Display uploaded images -->
+                                @for (image of uploadedImages; track image.file.name + image.file.size) {
+                                    <div class="flex flex-col gap-3 p-4 border border-surface-300 dark:border-surface-600 rounded-lg bg-surface-50 dark:bg-surface-800">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <i class="pi pi-image text-xl text-blue-500"></i>
+                                                <span class="font-medium text-surface-900 dark:text-surface-0 text-sm">Image</span>
+                                            </div>
+                                            <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeImage($index)"></p-button>
+                                        </div>
+                                        <img [src]="image.previewUrl" alt="Preview" class="w-full h-48 object-cover rounded-md" />
+                                        <div class="text-sm text-surface-600 dark:text-surface-400">
+                                            <div class="font-medium truncate" [title]="image.file.name">{{ image.file.name }}</div>
+                                            <div class="text-xs">{{ formatFileSize(image.file.size) }}</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
             </form>
         </section>`
 })
@@ -102,6 +158,9 @@ export class EditTicket {
     selectedUser: string = '';
     selectedTitle: string = '';
     selectedDescription: string = '';
+    selectedEffort: string = '';
+    uploadedImages: ImageUpload[] = [];
+    imagePreviewUrl: string | null = null;
 
     priorityOptions = [
         { label: 'Low', value: 'Low' },
@@ -121,6 +180,46 @@ export class EditTicket {
         { label: 'User C', value: 'User C' },
         { label: 'Admin', value: 'Admin' }
     ];
+
+    effortOptions = [
+        { label: '1 hour', value: '1' },
+        { label: '2 hours', value: '2' },
+        { label: '4 hours', value: '4' },
+        { label: '1 day', value: '8' },
+        { label: '2 days', value: '16' },
+        { label: '1 week', value: '40' }
+    ];
+
+    formatFileSize = formatFileSize;
+
+    onImageSelect(event: any) {
+        const newImages = handleMultipleImageSelect(event);
+
+        if (newImages.length > 0) {
+            // Add new images to existing array
+            this.uploadedImages.push(...newImages);
+
+            // Show success message
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Success',
+                detail: `${newImages.length} image(s) uploaded successfully`,
+                life: 3000
+            });
+        }
+    }
+
+    removeImage(index: number) {
+        this.uploadedImages = removeImageFromArray(this.uploadedImages, index);
+
+        // Show success message
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Removed',
+            detail: 'Image removed successfully',
+            life: 3000
+        });
+    }
 
     ngOnInit() {
         const ticketId = this.activatedRoute.snapshot.paramMap.get('id');

@@ -13,6 +13,7 @@ import { Store } from '@ngxs/store';
 import { AddTicket } from '@/state/store/ticket/ticket.action';
 import { Ticket } from '@/state/store/ticket/ticket.state';
 import { Router } from '@angular/router';
+import { handleMultipleImageSelect, removeImageFromArray, cleanupImagePreviews, ImageUpload, formatFileSize } from './ticket.utils';
 
 @Component({
     selector: 'app-new-ticket',
@@ -63,7 +64,18 @@ import { Router } from '@angular/router';
                             <div class="flex flex-col gap-3">
                                 <label class="text-sm font-medium text-surface-900 dark:text-surface-0"> Attachments </label>
                                 <div class="flex gap-2">
-                                    <p-fileupload mode="basic" name="image" accept="image/*" [maxFileSize]="5000000" [auto]="true" chooseLabel="Upload Attatchment" (onSelect)="onImageSelect($event)" styleClass="flex-1" chooseIcon="pi pi-image">
+                                    <p-fileupload
+                                        mode="basic"
+                                        name="image"
+                                        accept="image/*"
+                                        [maxFileSize]="5000000"
+                                        [auto]="true"
+                                        [multiple]="true"
+                                        chooseLabel="Upload Images"
+                                        (onSelect)="onImageSelect($event)"
+                                        styleClass="flex-1"
+                                        chooseIcon="pi pi-image"
+                                    >
                                     </p-fileupload>
                                     <!-- <p-fileupload
                                         mode="basic"
@@ -78,7 +90,7 @@ import { Router } from '@angular/router';
                                     >
                                     </p-fileupload> -->
                                 </div>
-                                <!-- <small class="text-surface-500">Images: JPG, PNG, GIF (max 5MB) • Documents: PDF, DOC, DOCX (max 10MB)</small> -->
+                                <small class="text-surface-500">Images: JPG, PNG, GIF (max 5MB each) • Multiple images allowed</small>
                             </div>
                         </div>
                     </div>
@@ -117,25 +129,25 @@ import { Router } from '@angular/router';
                     </div>
 
                     <!-- Display uploaded files -->
-                    @if (uploadedImage || uploadedDocument) {
+                    @if (uploadedImages.length > 0 || uploadedDocument) {
                         <div class="col-span-12">
                             <div class="card">
-                                <div class="text-lg font-semibold mb-4">Uploaded Files</div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <!-- Display uploaded image -->
-                                    @if (uploadedImage) {
+                                <div class="text-lg font-semibold mb-4">Uploaded Files ({{ uploadedImages.length }} {{ uploadedImages.length === 1 ? 'image' : 'images' }})</div>
+                                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    <!-- Display uploaded images -->
+                                    @for (image of uploadedImages; track image.file.name + image.file.size) {
                                         <div class="flex flex-col gap-3 p-4 border border-surface-300 dark:border-surface-600 rounded-lg bg-surface-50 dark:bg-surface-800">
                                             <div class="flex items-center justify-between">
                                                 <div class="flex items-center gap-2">
                                                     <i class="pi pi-image text-xl text-blue-500"></i>
-                                                    <span class="font-medium text-surface-900 dark:text-surface-0">Image</span>
+                                                    <span class="font-medium text-surface-900 dark:text-surface-0 text-sm">Image</span>
                                                 </div>
-                                                <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeImage()"></p-button>
+                                                <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeImage($index)"></p-button>
                                             </div>
-                                            <img [src]="imagePreviewUrl" alt="Preview" class="w-full h-48 object-cover rounded-md" />
+                                            <img [src]="image.previewUrl" alt="Preview" class="w-full h-48 object-cover rounded-md" />
                                             <div class="text-sm text-surface-600 dark:text-surface-400">
-                                                <div class="font-medium">{{ uploadedImage.name }}</div>
-                                                <div class="text-xs">{{ formatFileSize(uploadedImage.size) }}</div>
+                                                <div class="font-medium truncate" [title]="image.file.name">{{ image.file.name }}</div>
+                                                <div class="text-xs">{{ formatFileSize(image.file.size) }}</div>
                                             </div>
                                         </div>
                                     }
@@ -188,9 +200,11 @@ export class NewTicket {
     titleTouched: boolean = false;
     descriptionTouched: boolean = false;
 
-    uploadedImage: File | null = null;
+    uploadedImages: ImageUpload[] = [];
     uploadedDocument: File | null = null;
-    imagePreviewUrl: string | null = null;
+
+    // Reference to utility function for use in template
+    formatFileSize = formatFileSize;
 
     priorityOptions = [
         { label: 'Low', value: 'Low' },
@@ -243,36 +257,42 @@ export class NewTicket {
     ];
 
     onImageSelect(event: any) {
-        if (event.files && event.files.length > 0) {
-            this.uploadedImage = event.files[0];
-            this.imagePreviewUrl = URL.createObjectURL(event.files[0]);
+        const newImages = handleMultipleImageSelect(event);
+
+        if (newImages.length > 0) {
+            // Add new images to existing array
+            this.uploadedImages.push(...newImages);
+
+            // Show success message
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Success',
+                detail: `${newImages.length} image(s) uploaded successfully`,
+                life: 3000
+            });
         }
     }
 
-    onDocumentSelect(event: any) {
-        if (event.files && event.files.length > 0) {
-            this.uploadedDocument = event.files[0];
-        }
-    }
+    // onDocumentSelect(event: any) {
+    //     if (event.files && event.files.length > 0) {
+    //         this.uploadedDocument = event.files[0];
+    //     }
+    // }
 
-    removeImage() {
-        if (this.imagePreviewUrl) {
-            URL.revokeObjectURL(this.imagePreviewUrl);
-        }
-        this.uploadedImage = null;
-        this.imagePreviewUrl = null;
+    removeImage(index: number) {
+        this.uploadedImages = removeImageFromArray(this.uploadedImages, index);
+
+        // Show success message
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Removed',
+            detail: 'Image removed successfully',
+            life: 3000
+        });
     }
 
     removeDocument() {
         this.uploadedDocument = null;
-    }
-
-    formatFileSize(bytes: number): string {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     }
 
     isFormValid(): boolean {
